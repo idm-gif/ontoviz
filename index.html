@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XML Visualizer Pro - Back to Results</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <style>
+      :root {
+        --pico-font-size: 14px;
+        --sidebar-width: 360px;
+        --pico-primary: #2c5282;
+      }
+      body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background-color: #f7fafc;
+        margin: 0;
+      }
+
+      /* Navbar */
+      .navbar { background: #fff; border-bottom: 1px solid #dfe3e8; position: sticky; top: 0; z-index: 1000; height: 65px; display: flex; align-items: center; padding: 0 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+      .nav-container { display: flex; width: 100%; align-items: center; gap: 0.8rem; }
+      .nav-links { display: flex; gap: 0.5rem; overflow-x: auto; scrollbar-width: none; flex-grow: 1; }
+      .nav-item { padding: 4px 12px; background: #5d6d8a; color: white !important; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 0.8rem; text-decoration: none; font-weight: 600; border:none; transition: 0.2s; }
+      .nav-item:hover { background: #44597a; }
+      .filter-nav-btn { background: #2c5282 !important; border: none; padding: 4px 12px; font-size: 0.8rem; font-weight: bold; }
+
+      /* Breadcrumbs */
+      .breadcrumb { margin: 1rem; padding: 0.6rem 1.2rem; background: white; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+      .breadcrumb-item { color: #2b6cb0 !important; cursor: pointer; text-decoration: underline !important; }
+      .breadcrumb-current { color: #4a5568; font-weight: 600; }
+
+      /* Sidebar */
+      .filter-sidebar { width: var(--sidebar-width); background: white; border-right: 1px solid #e2e8f0; height: 100vh; position: fixed; top: 0; left: -380px; z-index: 2000; transition: left 0.3s ease; display: flex; flex-direction: column; box-shadow: 5px 0 20px rgba(0,0,0,0.1); }
+      .filter-sidebar.active { left: 0; }
+      .sidebar-header { padding: 1.2rem; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; flex-shrink: 0; }
+      .sidebar-content { flex-grow: 1; overflow-y: auto; padding: 1rem; }
+      .sidebar-footer { padding: 1rem; border-top: 1px solid #edf2f7; display: flex; gap: 0.5rem; background: #fff; flex-shrink: 0; }
+      .sidebar-footer button { flex: 1; margin: 0; padding: 8px; font-size: 0.85rem; font-weight: bold; }
+
+      /* Filters Accordion */
+      details.f-group-l1 { margin-bottom: 0.5rem; border-bottom: 1px solid #f0f4f8; }
+      details.f-group-l1 > summary { font-weight: 800; color: #2c5282; cursor: pointer; padding: 0.5rem 0; list-style: none; font-size: 0.9rem; text-transform: uppercase; }
+      details.f-group-l1 > summary::after { content: '▾'; float: right; opacity: 0.5; }
+
+      details.f-group-l2 { margin-left: 0.8rem; margin-bottom: 0.3rem; border: 1px solid #edf2f7; border-radius: 4px; }
+      details.f-group-l2 > summary { font-weight: 600; color: #4a5568; cursor: pointer; padding: 0.4rem 0.6rem; list-style: none; font-size: 0.85rem; background: #f8fafc; }
+      details.f-group-l2 > summary::after { content: '+'; float: right; }
+      .range-box { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+      .range-box label { font-size: 11px; margin: 0; color: #718096; }
+      .range-box input { margin: 0; height: 32px; font-size: 0.8rem; }
+      .filter-opt { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; padding: 2px 10px; cursor: pointer; }
+
+      /* Main View */
+      main { flex-grow: 1; width: 100%; max-width: 1450px; margin: 0 auto; padding: 1rem; }
+
+      /* Header with Back Button */
+      .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+      .back-btn { background: #e2e8f0; color: #2d3748; border: none; padding: 6px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+      .back-btn:hover { background: #cbd5e0; }
+      .content-header { background: #1a365d; color: white; padding: 1.2rem; border-radius: 8px; text-align: center; margin-bottom: 1.5rem; position: relative; }
+      .content-header h2 { margin: 0; font-size: 1.4rem; font-weight: 700; text-transform: uppercase; color: white !important; }
+
+      /* Object Data */
+      .flow-container { display: block; width: 100%; }
+      .flow-container::after { content: ""; display: table; clear: both; }
+      .primary-image-float { float: left; width: 420px; max-width: 100%; margin: 0 1.5rem 1.5rem 0; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+
+      .data-card-inline { display: inline-flex; flex-direction: column; width: calc(33.3% - 1rem); margin: 0 1rem 1rem 0; background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 0.8rem; float: left; min-height: 75px; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+      .data-label { font-size: 0.7rem; font-weight: 800; color: #3182ce; text-transform: uppercase; margin-bottom: 0.3rem; border-bottom: 1px solid #f7fafc; padding-bottom: 2px; }
+      .data-content { font-size: 0.85rem; color: #2d3748; line-height: 1.4; }
+
+      /* Grid */
+      .children-section-title { clear: both; text-align: center; margin: 3rem 0 1.5rem; opacity: 0.6; font-size: 1.1rem; font-weight: bold; border-top: 2px solid #e2e8f0; padding-top: 2rem; }
+      .children-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; padding-bottom: 4rem; }
+      .child-card { background: white; border: 1px solid #edf2f7; border-radius: 12px; padding: 1.5rem; text-align: center; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+      .child-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); border-color: #3182ce; }
+      .child-thumb-wrap { width: 85px; height: 85px; border-radius: 50%; overflow: hidden; margin: 0 auto 1rem; border: 4px solid #f7fafc; background: #edf2f7; }
+      .child-thumb { width: 100%; height: 100%; object-fit: cover; }
+      .child-card h4 { font-size: 0.92rem; margin: 0; color: #2d3748; font-weight: 700; line-height: 1.3; }
+      .search-container input { border-radius: 50px; padding-left: 1.5rem; max-width: 550px; margin: 1rem auto 2.5rem; display: block; border: 2px solid #e2e8f0; }
+      .hidden { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div id="inputScreen" class="container" style="padding-top: 15vh; text-align: center;">
+      <article style="max-width: 550px; margin: 0 auto; padding: 3rem; border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.1);">
+        <h1>📂 XML Visualizer Pro</h1>
+        <p>Завантажте XML для автоматичної каталогізації</p>
+        <input type="file" id="fileInput" accept=".xml" />
+      </article>
+    </div>
+
+    <div id="appContainer" class="hidden">
+      <nav class="navbar">
+        <div class="nav-container">
+          <a href="#" id="homeBtn" style="font-weight: 800; color: #2b6cb0; text-decoration: none;">🏠 ГОЛОВНА</a>
+          <button class="filter-nav-btn" onclick="toggleSidebar()">⚙ ФІЛЬТРИ</button>
+          <div class="nav-links" id="topNav"></div>
+          <button class="secondary outline" onclick="location.reload()" style="padding: 4px 10px; font-size: 0.7rem; border-radius: 4px; margin-left: auto;">Новий файл</button>
+        </div>
+      </nav>
+
+      <div style="display: flex; position: relative;">
+        <aside id="sidebar" class="filter-sidebar">
+          <div class="sidebar-header">
+            <strong>⚙ ФІЛЬТРАЦІЯ</strong>
+            <span style="cursor:pointer; font-size:2rem; line-height:1;" onclick="toggleSidebar()">&times;</span>
+          </div>
+          <div id="filtersContent" class="sidebar-content"></div>
+          <div class="sidebar-footer">
+            <button onclick="applyFilters()">Застосувати</button>
+            <button class="contrast outline" onclick="resetFilters()">Скинути</button>
+          </div>
+        </aside>
+
+        <main>
+          <div id="breadcrumb" class="breadcrumb"></div>
+          <div class="search-container">
+            <input type="search" id="globalSearch" placeholder="🔍 Пошук за назвою або характеристикою..." oninput="handleSearch(this.value)">
+          </div>
+          <div id="mainDisplay"></div>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      let allNodes = new Map();
+      let rootNode = null;
+      let currentNode = null;
+      let activeFilters = { categorical: {}, numerical: {}, chronological: {} };
+      let searchTerm = "";
+      let isDetailedMode = false;
+      const dateRegex = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
+
+      document.getElementById('fileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          document.getElementById('inputScreen').classList.add('hidden');
+          document.getElementById('appContainer').classList.remove('hidden');
+          parseXML(event.target.result);
+        };
+        reader.readAsText(file);
+      });
+
+      function parseXML(text) {
+        const xml = new DOMParser().parseFromString(text, "application/xml");
+        const nodes = xml.querySelectorAll("Node");
+        const edges = xml.querySelectorAll("Edge");
+        const nameToGuid = new Map();
+        allNodes.clear();
+
+        nodes.forEach(el => {
+          const guid = el.getAttribute("guid");
+          const obj = {
+            guid,
+            name: el.getAttribute("nodeName"),
+            nclass: el.getAttribute("nclass") || "Інше",
+            data: [...el.querySelectorAll("data")].map(d => ({
+              label: d.getAttribute("tclass") || "Інфо",
+              value: d.textContent.trim(),
+              link: d.getAttribute("link")
+            })),
+            children: [],
+            parent: null
+          };
+          allNodes.set(guid, obj);
+          nameToGuid.set(obj.name, guid);
+        });
+
+        edges.forEach(edge => {
+          const pG = nameToGuid.get(edge.getAttribute("node2"));
+          const cG = nameToGuid.get(edge.getAttribute("node1"));
+          if (pG && cG) {
+            const p = allNodes.get(pG);
+            const c = allNodes.get(cG);
+            if (p && c) { p.children.push(c); c.parent = p; }
+          }
+        });
+
+        rootNode = [...allNodes.values()].find(n => !n.parent) || [...allNodes.values()][0];
+        renderTopNav();
+        generateSmartFilters();
+        navigateTo(rootNode);
+      }
+
+      // --- НАВІГАЦІЯ ---
+      function navigateTo(node) {
+        if (!node) return;
+        currentNode = node;
+        isDetailedMode = true;
+        updateBreadcrumbs();
+        renderMainDisplay();
+        window.scrollTo(0, 0);
+      }
+
+      function forceNavigate(node) {
+        currentNode = node;
+        isDetailedMode = true;
+        updateBreadcrumbs();
+        renderMainDisplay();
+        window.scrollTo(0, 0);
+      }
+
+      function backToResults() {
+        isDetailedMode = false;
+        renderMainDisplay();
+      }
+
+      function updateBreadcrumbs() {
+        const container = document.getElementById('breadcrumb');
+        container.innerHTML = "";
+        let path = [];
+        let temp = currentNode;
+        while (temp) { path.unshift(temp); temp = temp.parent; }
+        path.forEach((node, idx) => {
+          if (idx > 0) container.innerHTML += ' <span style="opacity:0.3">/</span> ';
+          const a = document.createElement('span');
+          if (idx === path.length - 1) {
+            a.className = "breadcrumb-current";
+          } else {
+            a.className = "breadcrumb-item";
+            a.onclick = () => {
+              searchTerm = "";
+              activeFilters = { categorical: {}, numerical: {}, chronological: {} };
+              isDetailedMode = true;
+              navigateTo(node);
+            };
+          }
+          a.textContent = node.name;
+          container.appendChild(a);
+        });
+      }
+
+      function renderTopNav() {
+        const nav = document.getElementById('topNav');
+        nav.innerHTML = "";
+        rootNode.children.forEach(child => {
+          const btn = document.createElement('button');
+          btn.className = "nav-item";
+          btn.textContent = child.name;
+          btn.onclick = () => {
+            searchTerm = "";
+            activeFilters = { categorical: {}, numerical: {}, chronological: {} };
+            navigateTo(child);
+          };
+          nav.appendChild(btn);
+        });
+        document.getElementById('homeBtn').onclick = (e) => { e.preventDefault(); navigateTo(rootNode); };
+      }
+
+      // --- ФІЛЬТРИ ---
+      function generateSmartFilters() {
+        const cont = document.getElementById('filtersContent');
+        cont.innerHTML = "";
+        const structure = {};
+        allNodes.forEach(node => {
+          const cls = node.nclass;
+          if (!structure[cls]) structure[cls] = {};
+          node.data.forEach(d => {
+            if (!d.value || isImg(d)) return;
+            if (!structure[cls][d.label]) structure[cls][d.label] = [];
+            structure[cls][d.label].push(d.value);
+          });
+        });
+
+        for (const [cls, fields] of Object.entries(structure)) {
+          const l1 = document.createElement('details');
+          l1.className = "f-group-l1";
+          l1.innerHTML = `<summary>${cls}</summary>`;
+
+          for (const [field, rawValues] of Object.entries(fields)) {
+            const uniqueValues = [...new Set(rawValues)];
+            if (uniqueValues.length < 2) continue;
+            const l2 = document.createElement('details');
+            l2.className = "f-group-l2";
+            l2.innerHTML = `<summary>${field}</summary>`;
+            const isNumeric = uniqueValues.every(v => !isNaN(parseFloat(v)));
+            const isDate = uniqueValues.every(v => dateRegex.test(v));
+            const inner = document.createElement('div');
+
+            if (isNumeric) {
+              const nums = uniqueValues.map(parseFloat);
+              inner.className = "range-box";
+              inner.innerHTML = `
+                <label>Від:</label><input type="number" step="any" placeholder="${Math.min(...nums)}" class="num-in" data-cls="${cls}" data-field="${field}" data-type="min">
+                <label>До:</label><input type="number" step="any" placeholder="${Math.max(...nums)}" class="num-in" data-cls="${cls}" data-field="${field}" data-type="max">`;
+            } else if (isDate) {
+              inner.className = "range-box";
+              inner.innerHTML = `
+                <label>Початок:</label><input type="date" class="date-in" data-cls="${cls}" data-field="${field}" data-type="start">
+                <label>Кінець:</label><input type="date" class="date-in" data-cls="${cls}" data-field="${field}" data-type="end">`;
+            } else {
+              inner.className = "filter-options-container";
+              uniqueValues.sort().forEach(val => {
+                const lbl = document.createElement('label');
+                lbl.className = "filter-opt";
+                lbl.innerHTML = `<input type="checkbox" class="cat-cb" data-cls="${cls}" data-field="${field}" value="${val}"> ${val}`;
+                inner.appendChild(lbl);
+              });
+            }
+            l2.appendChild(inner);
+            l1.appendChild(l2);
+          }
+          cont.appendChild(l1);
+        }
+      }
+
+      // --- ВІДОБРАЖЕННЯ (RENDER) ---
+      function hasActiveFilters() {
+        return searchTerm.length > 0 ||
+          Object.keys(activeFilters.categorical).length > 0 ||
+          Object.keys(activeFilters.numerical).length > 0 ||
+          Object.keys(activeFilters.chronological).length > 0;
+      }
+
+      function renderMainDisplay() {
+        const display = document.getElementById('mainDisplay');
+        display.innerHTML = "";
+
+        const filtering = hasActiveFilters();
+
+        if (filtering && !isDetailedMode) {
+          // РЕЖИМ РЕЗУЛЬТАТІВ ПОШУКУ
+          const results = Array.from(allNodes.values()).filter(validateNode);
+          display.innerHTML = `<h3 class="children-section-title">Знайдено результатів: ${results.length}</h3>`;
+          display.appendChild(renderGrid(results, true));
+        } else {
+          // РЕЖИМ КАРТКИ (Детальний перегляд)
+          if (filtering) {
+            const backBtn = document.createElement('div');
+            backBtn.className = "header-controls";
+            backBtn.innerHTML = `<button class="back-btn" onclick="backToResults()">⬅ Повернутися до результатів</button>`;
+            display.appendChild(backBtn);
+          }
+
+          const header = document.createElement('div');
+          header.className = "content-header";
+          header.innerHTML = `<h2>${currentNode.name}</h2>`;
+          display.appendChild(header);
+
+          const flow = document.createElement('div');
+          flow.className = "flow-container";
+
+          const imgs = currentNode.data.filter(isImg);
+          const info = currentNode.data.filter(d => !isImg(d));
+
+          if (imgs.length > 0) {
+            const img = document.createElement('img');
+            img.className = "primary-image-float";
+            img.src = imgs[0].link || imgs[0].value;
+            flow.appendChild(img);
+          }
+
+          info.forEach(t => {
+            const card = document.createElement('div');
+            card.className = "data-card-inline";
+            card.innerHTML = `<div class="data-label">${t.label}</div><div class="data-content">${t.value.replace(/\n/g, '<br>')}</div>`;
+            flow.appendChild(card);
+          });
+
+          display.appendChild(flow);
+
+          if (currentNode.children.length > 0) {
+            display.innerHTML += `<h3 class="children-section-title">Підрозділи / Елементи (${currentNode.children.length})</h3>`;
+            display.appendChild(renderGrid(currentNode.children, false));
+          }
+        }
+      }
+
+      function renderGrid(nodes, isSearchResult) {
+        const grid = document.createElement('div');
+        grid.className = "children-grid";
+        nodes.forEach(n => {
+          const card = document.createElement('div');
+          card.className = "child-card";
+          card.onclick = () => {
+            if (isSearchResult) {
+              forceNavigate(n);
+            } else {
+              activeFilters = { categorical: {}, numerical: {}, chronological: {} };
+              searchTerm = "";
+              navigateTo(n);
+            }
+          };
+
+          const img = n.data.find(isImg);
+          const imgSrc = img ? (img.link || img.value) : "";
+          card.innerHTML = `
+            <div class="child-thumb-wrap">
+              ${imgSrc ? `<img class="child-thumb" src="${imgSrc}" loading="lazy">` : ''}
+            </div>
+            <h4>${n.name}</h4>
+            <div style="font-size:0.7rem; opacity:0.5; margin-top:5px;">${n.nclass}</div>
+          `;
+          grid.appendChild(card);
+        });
+        return grid;
+      }
+
+      function applyFilters() {
+        activeFilters = { categorical: {}, numerical: {}, chronological: {} };
+
+        document.querySelectorAll('.cat-cb:checked').forEach(cb => {
+          const { cls, field } = cb.dataset;
+          if (!activeFilters.categorical[cls]) activeFilters.categorical[cls] = {};
+          if (!activeFilters.categorical[cls][field]) activeFilters.categorical[cls][field] = [];
+          activeFilters.categorical[cls][field].push(cb.value);
+        });
+
+        document.querySelectorAll('.num-in').forEach(input => {
+          if (!input.value) return;
+          const { cls, field, type } = input.dataset;
+          if (!activeFilters.numerical[cls]) activeFilters.numerical[cls] = {};
+          if (!activeFilters.numerical[cls][field]) activeFilters.numerical[cls][field] = {};
+          activeFilters.numerical[cls][field][type] = parseFloat(input.value);
+        });
+
+        document.querySelectorAll('.date-in').forEach(input => {
+          if (!input.value) return;
+          const { cls, field, type } = input.dataset;
+          if (!activeFilters.chronological[cls]) activeFilters.chronological[cls] = {};
+          if (!activeFilters.chronological[cls][field]) activeFilters.chronological[cls][field] = {};
+          activeFilters.chronological[cls][field][type] = new Date(input.value);
+        });
+
+        isDetailedMode = false;
+        renderMainDisplay();
+        toggleSidebar();
+      }
+
+      function resetFilters() {
+        document.querySelectorAll('input').forEach(i => i.type === 'checkbox' ? i.checked = false : i.value = "");
+        activeFilters = { categorical: {}, numerical: {}, chronological: {} };
+        searchTerm = "";
+        isDetailedMode = true;
+        renderMainDisplay();
+      }
+
+      function handleSearch(v) {
+        searchTerm = v.toLowerCase();
+        isDetailedMode = false;
+        renderMainDisplay();
+      }
+
+      function validateNode(node) {
+        const sMatch = !searchTerm || node.name.toLowerCase().includes(searchTerm) || node.data.some(d => d.value.toLowerCase().includes(searchTerm));
+        if (!sMatch) return false;
+
+        const hasCat = Object.keys(activeFilters.categorical).length > 0;
+        const hasNum = Object.keys(activeFilters.numerical).length > 0;
+        const hasDate = Object.keys(activeFilters.chronological).length > 0;
+        if (!hasCat && !hasNum && !hasDate) return true;
+
+        const cls = node.nclass;
+        const classesWithFilters = new Set([
+          ...Object.keys(activeFilters.categorical),
+          ...Object.keys(activeFilters.numerical),
+          ...Object.keys(activeFilters.chronological)
+        ]);
+        if (classesWithFilters.size > 0 && !classesWithFilters.has(cls)) return false;
+
+        // Categorical Check
+        if (activeFilters.categorical[cls]) {
+          for (const [f, vals] of Object.entries(activeFilters.categorical[cls])) {
+            const item = node.data.find(d => d.label === f);
+            if (!item || !vals.includes(item.value)) return false;
+          }
+        }
+
+        // Numerical Check
+        if (activeFilters.numerical[cls]) {
+          for (const [f, range] of Object.entries(activeFilters.numerical[cls])) {
+            const item = node.data.find(d => d.label === f);
+            const val = parseFloat(item ? item.value : NaN);
+            if (isNaN(val)) return false;
+            if (range.min !== undefined && val < range.min) return false;
+            if (range.max !== undefined && val > range.max) return false;
+          }
+        }
+
+        // Date Check
+        if (activeFilters.chronological[cls]) {
+          for (const [f, range] of Object.entries(activeFilters.chronological[cls])) {
+            const item = node.data.find(d => d.label === f);
+            if (!item || !dateRegex.test(item.value)) return false;
+            const p = item.value.split('.');
+            const dObj = new Date(p[2], p[1] - 1, p[0]);
+            if (range.start && dObj < range.start) return false;
+            if (range.end && dObj > range.end) return false;
+          }
+        }
+
+        return true;
+      }
+
+      function isImg(d) { return d.label.toLowerCase().includes("image") || /\.(jpg|jpeg|png|webp|svg)$/i.test(d.value); }
+      function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+    </script>
+  </body>
+</html>
