@@ -94,6 +94,13 @@
       .child-card h4 { font-size: 0.92rem; margin: 0; color: #2d3748; font-weight: 700; line-height: 1.3; }
       .search-container input { border-radius: 50px; padding-left: 1.5rem; max-width: 550px; margin: 1rem auto 2.5rem; display: block; border: 2px solid #e2e8f0; }
       .hidden { display: none !important; }
+
+      /* ── Share button ── */
+      .share-btn { background: #38a169; color: white !important; border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+      .share-btn:hover { background: #2f855a; }
+      .share-toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #2d3748; color: white; padding: 0.7rem 1.5rem; border-radius: 8px; font-size: 0.85rem; z-index: 9999; box-shadow: 0 8px 20px rgba(0,0,0,0.2); animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s forwards; }
+      @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+      @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
     </style>
   </head>
   <body>
@@ -132,7 +139,8 @@
           <a href="#" id="homeBtn" style="font-weight:800; color:#2b6cb0; text-decoration:none;">🏠 ГОЛОВНА</a>
           <button class="filter-nav-btn" onclick="toggleSidebar()">⚙ ФІЛЬТРИ</button>
           <div class="nav-links" id="topNav"></div>
-          <button class="secondary outline" onclick="location.reload()" style="padding:4px 10px; font-size:0.7rem; border-radius:4px; margin-left:auto;">Новий файл</button>
+          <button id="shareBtn" class="share-btn hidden" onclick="copyShareLink()">📋 Копіювати посилання</button>
+          <button class="secondary outline" onclick="goHome()" style="padding:4px 10px; font-size:0.7rem; border-radius:4px; margin-left:auto;">Новий файл</button>
         </div>
       </nav>
 
@@ -166,6 +174,7 @@
       let activeFilters = { categorical: {}, numerical: {}, chronological: {} };
       let searchTerm = "";
       let isDetailedMode = false;
+      let currentServerFile = null; // tracks loaded server file name
       const dateRegex = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
 
       // ── TAB SWITCHING ──
@@ -204,14 +213,17 @@
         }
       }
 
-      async function loadServerFile(filename) {
+      async function loadServerFile(filename, targetNodeGuid) {
         try {
           const res = await fetch(`api.php?action=get&file=${encodeURIComponent(filename)}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const text = await res.text();
+          currentServerFile = filename;
           document.getElementById('inputScreen').classList.add('hidden');
           document.getElementById('appContainer').classList.remove('hidden');
-          parseXML(text);
+          document.getElementById('shareBtn').classList.remove('hidden');
+          parseXML(text, targetNodeGuid);
+          updateURL();
         } catch (err) {
           alert(`Помилка завантаження файлу: ${err.message}`);
         }
@@ -223,15 +235,18 @@
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (event) => {
+          currentServerFile = null;
           document.getElementById('inputScreen').classList.add('hidden');
           document.getElementById('appContainer').classList.remove('hidden');
+          document.getElementById('shareBtn').classList.add('hidden');
+          history.replaceState(null, '', location.pathname);
           parseXML(event.target.result);
         };
         reader.readAsText(file);
       });
 
       // ── PARSE XML ──
-      function parseXML(text) {
+      function parseXML(text, targetNodeGuid) {
         const xml = new DOMParser().parseFromString(text, "application/xml");
         const nodes = xml.querySelectorAll("Node");
         const edges = xml.querySelectorAll("Edge");
@@ -269,7 +284,8 @@
         rootNode = [...allNodes.values()].find(n => !n.parent) || [...allNodes.values()][0];
         renderTopNav();
         generateSmartFilters();
-        navigateTo(rootNode);
+        const target = targetNodeGuid ? allNodes.get(targetNodeGuid) : null;
+        navigateTo(target || rootNode);
       }
 
       // ── NAVIGATION ──
@@ -279,6 +295,7 @@
         isDetailedMode = true;
         updateBreadcrumbs();
         renderMainDisplay();
+        updateURL();
         window.scrollTo(0, 0);
       }
 
@@ -287,6 +304,7 @@
         isDetailedMode = true;
         updateBreadcrumbs();
         renderMainDisplay();
+        updateURL();
         window.scrollTo(0, 0);
       }
 
@@ -579,8 +597,76 @@
       function isImg(d) { return d.label.toLowerCase().includes("image") || /\.(jpg|jpeg|png|webp|svg)$/i.test(d.value); }
       function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
 
-      // ── INIT: load server file list on page load ──
-      loadServerFileList();
+      // ── URL & SHARING ──
+      function updateURL() {
+        if (!currentServerFile) return;
+        const params = new URLSearchParams();
+        params.set('file', currentServerFile);
+        // Include node guid if not at root
+        if (currentNode && currentNode !== rootNode) {
+          params.set('node', currentNode.guid);
+        }
+        const newURL = location.pathname + '?' + params.toString();
+        history.replaceState(null, '', newURL);
+      }
+
+      function getShareURL() {
+        if (!currentServerFile) return location.href;
+        const url = new URL(location.href);
+        url.search = '';
+        url.searchParams.set('file', currentServerFile);
+        if (currentNode && currentNode !== rootNode) {
+          url.searchParams.set('node', currentNode.guid);
+        }
+        return url.toString();
+      }
+
+      function copyShareLink() {
+        const url = getShareURL();
+        navigator.clipboard.writeText(url).then(() => {
+          showToast('Посилання скопійовано!');
+        }).catch(() => {
+          // Fallback for older browsers
+          const ta = document.createElement('textarea');
+          ta.value = url;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          showToast('Посилання скопійовано!');
+        });
+      }
+
+      function showToast(msg) {
+        const existing = document.querySelector('.share-toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = 'share-toast';
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2200);
+      }
+
+      function goHome() {
+        currentServerFile = null;
+        history.replaceState(null, '', location.pathname);
+        location.reload();
+      }
+
+      // ── INIT ──
+      (function init() {
+        const params = new URLSearchParams(location.search);
+        const fileParam = params.get('file');
+        const nodeParam = params.get('node');
+        if (fileParam) {
+          // Auto-load the shared file
+          loadServerFile(fileParam, nodeParam || null);
+        } else {
+          loadServerFileList();
+        }
+      })();
     </script>
   </body>
 </html>
