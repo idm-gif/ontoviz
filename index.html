@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>XML Visualizer Pro - Back to Results</title>
+    <title>XML Visualizer Pro</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
     <style>
       :root {
@@ -11,28 +11,48 @@
         --sidebar-width: 360px;
         --pico-primary: #2c5282;
       }
-      body {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        background-color: #f7fafc;
-        margin: 0;
-      }
+      body { min-height: 100vh; display: flex; flex-direction: column; background-color: #f7fafc; margin: 0; }
 
-      /* Navbar */
+      /* ── Input Screen ── */
+      #inputScreen { padding-top: 10vh; }
+      .start-card { max-width: 680px; margin: 0 auto; padding: 2.5rem; border-radius: 14px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); background: white; }
+      .start-card h1 { margin-bottom: 0.3rem; }
+      .start-card > p { color: #718096; margin-bottom: 1.5rem; }
+
+      /* Tabs */
+      .tabs { display: flex; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; }
+      .tab-btn { background: none; border: none; padding: 0.5rem 1.2rem; font-size: 0.9rem; font-weight: 600; color: #718096; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: 0.2s; }
+      .tab-btn.active { color: #2c5282; border-bottom-color: #2c5282; }
+
+      /* Server file list */
+      #serverFileList { min-height: 120px; }
+      .server-file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.8rem; }
+      .server-file-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 10px; padding: 1rem 0.8rem; text-align: center; cursor: pointer; transition: 0.2s; }
+      .server-file-card:hover { border-color: #2c5282; background: #ebf4ff; transform: translateY(-2px); }
+      .server-file-card .file-icon { font-size: 2.2rem; display: block; margin-bottom: 0.5rem; }
+      .server-file-card .file-name { font-size: 0.78rem; font-weight: 700; color: #2d3748; word-break: break-all; }
+      .empty-state { text-align: center; color: #a0aec0; padding: 2rem; font-size: 0.9rem; }
+
+      /* Divider */
+      .or-divider { text-align: center; color: #a0aec0; font-size: 0.8rem; margin: 1.2rem 0; position: relative; }
+      .or-divider::before, .or-divider::after { content: ""; position: absolute; top: 50%; width: 44%; height: 1px; background: #e2e8f0; }
+      .or-divider::before { left: 0; }
+      .or-divider::after { right: 0; }
+
+      /* ── Navbar ── */
       .navbar { background: #fff; border-bottom: 1px solid #dfe3e8; position: sticky; top: 0; z-index: 1000; height: 65px; display: flex; align-items: center; padding: 0 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
       .nav-container { display: flex; width: 100%; align-items: center; gap: 0.8rem; }
       .nav-links { display: flex; gap: 0.5rem; overflow-x: auto; scrollbar-width: none; flex-grow: 1; }
-      .nav-item { padding: 4px 12px; background: #5d6d8a; color: white !important; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 0.8rem; text-decoration: none; font-weight: 600; border:none; transition: 0.2s; }
+      .nav-item { padding: 4px 12px; background: #5d6d8a; color: white !important; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 0.8rem; text-decoration: none; font-weight: 600; border: none; transition: 0.2s; }
       .nav-item:hover { background: #44597a; }
       .filter-nav-btn { background: #2c5282 !important; border: none; padding: 4px 12px; font-size: 0.8rem; font-weight: bold; }
 
-      /* Breadcrumbs */
+      /* ── Breadcrumbs ── */
       .breadcrumb { margin: 1rem; padding: 0.6rem 1.2rem; background: white; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
       .breadcrumb-item { color: #2b6cb0 !important; cursor: pointer; text-decoration: underline !important; }
       .breadcrumb-current { color: #4a5568; font-weight: 600; }
 
-      /* Sidebar */
+      /* ── Sidebar ── */
       .filter-sidebar { width: var(--sidebar-width); background: white; border-right: 1px solid #e2e8f0; height: 100vh; position: fixed; top: 0; left: -380px; z-index: 2000; transition: left 0.3s ease; display: flex; flex-direction: column; box-shadow: 5px 0 20px rgba(0,0,0,0.1); }
       .filter-sidebar.active { left: 0; }
       .sidebar-header { padding: 1.2rem; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; flex-shrink: 0; }
@@ -40,11 +60,10 @@
       .sidebar-footer { padding: 1rem; border-top: 1px solid #edf2f7; display: flex; gap: 0.5rem; background: #fff; flex-shrink: 0; }
       .sidebar-footer button { flex: 1; margin: 0; padding: 8px; font-size: 0.85rem; font-weight: bold; }
 
-      /* Filters Accordion */
+      /* ── Filters ── */
       details.f-group-l1 { margin-bottom: 0.5rem; border-bottom: 1px solid #f0f4f8; }
       details.f-group-l1 > summary { font-weight: 800; color: #2c5282; cursor: pointer; padding: 0.5rem 0; list-style: none; font-size: 0.9rem; text-transform: uppercase; }
       details.f-group-l1 > summary::after { content: '▾'; float: right; opacity: 0.5; }
-
       details.f-group-l2 { margin-left: 0.8rem; margin-bottom: 0.3rem; border: 1px solid #edf2f7; border-radius: 4px; }
       details.f-group-l2 > summary { font-weight: 600; color: #4a5568; cursor: pointer; padding: 0.4rem 0.6rem; list-style: none; font-size: 0.85rem; background: #f8fafc; }
       details.f-group-l2 > summary::after { content: '+'; float: right; }
@@ -53,26 +72,19 @@
       .range-box input { margin: 0; height: 32px; font-size: 0.8rem; }
       .filter-opt { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; padding: 2px 10px; cursor: pointer; }
 
-      /* Main View */
+      /* ── Main ── */
       main { flex-grow: 1; width: 100%; max-width: 1450px; margin: 0 auto; padding: 1rem; }
-
-      /* Header with Back Button */
       .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
       .back-btn { background: #e2e8f0; color: #2d3748; border: none; padding: 6px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
       .back-btn:hover { background: #cbd5e0; }
-      .content-header { background: #1a365d; color: white; padding: 1.2rem; border-radius: 8px; text-align: center; margin-bottom: 1.5rem; position: relative; }
+      .content-header { background: #1a365d; color: white; padding: 1.2rem; border-radius: 8px; text-align: center; margin-bottom: 1.5rem; }
       .content-header h2 { margin: 0; font-size: 1.4rem; font-weight: 700; text-transform: uppercase; color: white !important; }
-
-      /* Object Data */
       .flow-container { display: block; width: 100%; }
       .flow-container::after { content: ""; display: table; clear: both; }
       .primary-image-float { float: left; width: 420px; max-width: 100%; margin: 0 1.5rem 1.5rem 0; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-
       .data-card-inline { display: inline-flex; flex-direction: column; width: calc(33.3% - 1rem); margin: 0 1rem 1rem 0; background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 0.8rem; float: left; min-height: 75px; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
       .data-label { font-size: 0.7rem; font-weight: 800; color: #3182ce; text-transform: uppercase; margin-bottom: 0.3rem; border-bottom: 1px solid #f7fafc; padding-bottom: 2px; }
       .data-content { font-size: 0.85rem; color: #2d3748; line-height: 1.4; }
-
-      /* Grid */
       .children-section-title { clear: both; text-align: center; margin: 3rem 0 1.5rem; opacity: 0.6; font-size: 1.1rem; font-weight: bold; border-top: 2px solid #e2e8f0; padding-top: 2rem; }
       .children-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; padding-bottom: 4rem; }
       .child-card { background: white; border: 1px solid #edf2f7; border-radius: 12px; padding: 1.5rem; text-align: center; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
@@ -85,25 +97,46 @@
     </style>
   </head>
   <body>
-    <div id="inputScreen" class="container" style="padding-top: 15vh; text-align: center;">
-      <article style="max-width: 550px; margin: 0 auto; padding: 3rem; border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.1);">
+
+    <!-- ── INPUT SCREEN ── -->
+    <div id="inputScreen" class="container">
+      <article class="start-card">
         <h1>📂 XML Visualizer Pro</h1>
-        <p>Завантажте XML для автоматичної каталогізації</p>
-        <input type="file" id="fileInput" accept=".xml" />
+        <p>Оберіть XML-файл із сервера або завантажте локальний</p>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('server', this)">🗂 З сервера</button>
+          <button class="tab-btn" onclick="switchTab('local', this)">📤 Локальний файл</button>
+        </div>
+
+        <!-- Server tab -->
+        <div id="tab-server">
+          <div id="serverFileList"><p class="empty-state">⏳ Завантаження списку файлів...</p></div>
+          <div style="margin-top:1rem; text-align:right;">
+            <button class="outline" style="font-size:0.8rem; padding:4px 12px;" onclick="loadServerFileList()">🔄 Оновити</button>
+          </div>
+        </div>
+
+        <!-- Local tab -->
+        <div id="tab-local" class="hidden">
+          <p style="color:#718096; font-size:0.9rem;">Виберіть .xml файл з вашого комп'ютера</p>
+          <input type="file" id="fileInput" accept=".xml" />
+        </div>
       </article>
     </div>
 
+    <!-- ── APP CONTAINER ── -->
     <div id="appContainer" class="hidden">
       <nav class="navbar">
         <div class="nav-container">
-          <a href="#" id="homeBtn" style="font-weight: 800; color: #2b6cb0; text-decoration: none;">🏠 ГОЛОВНА</a>
+          <a href="#" id="homeBtn" style="font-weight:800; color:#2b6cb0; text-decoration:none;">🏠 ГОЛОВНА</a>
           <button class="filter-nav-btn" onclick="toggleSidebar()">⚙ ФІЛЬТРИ</button>
           <div class="nav-links" id="topNav"></div>
-          <button class="secondary outline" onclick="location.reload()" style="padding: 4px 10px; font-size: 0.7rem; border-radius: 4px; margin-left: auto;">Новий файл</button>
+          <button class="secondary outline" onclick="location.reload()" style="padding:4px 10px; font-size:0.7rem; border-radius:4px; margin-left:auto;">Новий файл</button>
         </div>
       </nav>
 
-      <div style="display: flex; position: relative;">
+      <div style="display:flex; position:relative;">
         <aside id="sidebar" class="filter-sidebar">
           <div class="sidebar-header">
             <strong>⚙ ФІЛЬТРАЦІЯ</strong>
@@ -135,6 +168,56 @@
       let isDetailedMode = false;
       const dateRegex = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
 
+      // ── TAB SWITCHING ──
+      function switchTab(tab, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-server').classList.toggle('hidden', tab !== 'server');
+        document.getElementById('tab-local').classList.toggle('hidden', tab !== 'local');
+      }
+
+      // ── SERVER FILE LIST ──
+      async function loadServerFileList() {
+        const container = document.getElementById('serverFileList');
+        container.innerHTML = '<p class="empty-state">⏳ Завантаження...</p>';
+        try {
+          const res = await fetch('api.php?action=list');
+          const files = await res.json();
+          const xmlFiles = files.filter(f => f.toLowerCase().endsWith('.xml'));
+          if (xmlFiles.length === 0) {
+            container.innerHTML = '<p class="empty-state">📭 Папка <code>xml/</code> порожня.<br>Помістіть .xml файли у папку <code>xml/</code> на сервері.</p>';
+            return;
+          }
+          const grid = document.createElement('div');
+          grid.className = "server-file-grid";
+          xmlFiles.forEach(filename => {
+            const card = document.createElement('div');
+            card.className = "server-file-card";
+            card.innerHTML = `<span class="file-icon">📄</span><span class="file-name">${filename}</span>`;
+            card.onclick = () => loadServerFile(filename);
+            grid.appendChild(card);
+          });
+          container.innerHTML = '';
+          container.appendChild(grid);
+        } catch (err) {
+          container.innerHTML = `<p class="empty-state">⚠️ Не вдалося отримати список файлів.<br><small>${err.message}</small></p>`;
+        }
+      }
+
+      async function loadServerFile(filename) {
+        try {
+          const res = await fetch(`api.php?action=get&file=${encodeURIComponent(filename)}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const text = await res.text();
+          document.getElementById('inputScreen').classList.add('hidden');
+          document.getElementById('appContainer').classList.remove('hidden');
+          parseXML(text);
+        } catch (err) {
+          alert(`Помилка завантаження файлу: ${err.message}`);
+        }
+      }
+
+      // ── LOCAL FILE ──
       document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -147,6 +230,7 @@
         reader.readAsText(file);
       });
 
+      // ── PARSE XML ──
       function parseXML(text) {
         const xml = new DOMParser().parseFromString(text, "application/xml");
         const nodes = xml.querySelectorAll("Node");
@@ -188,7 +272,7 @@
         navigateTo(rootNode);
       }
 
-      // --- НАВІГАЦІЯ ---
+      // ── NAVIGATION ──
       function navigateTo(node) {
         if (!node) return;
         currentNode = node;
@@ -253,7 +337,7 @@
         document.getElementById('homeBtn').onclick = (e) => { e.preventDefault(); navigateTo(rootNode); };
       }
 
-      // --- ФІЛЬТРИ ---
+      // ── FILTERS ──
       function generateSmartFilters() {
         const cont = document.getElementById('filtersContent');
         cont.innerHTML = "";
@@ -310,7 +394,7 @@
         }
       }
 
-      // --- ВІДОБРАЖЕННЯ (RENDER) ---
+      // ── RENDER ──
       function hasActiveFilters() {
         return searchTerm.length > 0 ||
           Object.keys(activeFilters.categorical).length > 0 ||
@@ -321,16 +405,13 @@
       function renderMainDisplay() {
         const display = document.getElementById('mainDisplay');
         display.innerHTML = "";
-
         const filtering = hasActiveFilters();
 
         if (filtering && !isDetailedMode) {
-          // РЕЖИМ РЕЗУЛЬТАТІВ ПОШУКУ
           const results = Array.from(allNodes.values()).filter(validateNode);
           display.innerHTML = `<h3 class="children-section-title">Знайдено результатів: ${results.length}</h3>`;
           display.appendChild(renderGrid(results, true));
         } else {
-          // РЕЖИМ КАРТКИ (Детальний перегляд)
           if (filtering) {
             const backBtn = document.createElement('div');
             backBtn.className = "header-controls";
@@ -387,7 +468,6 @@
               navigateTo(n);
             }
           };
-
           const img = n.data.find(isImg);
           const imgSrc = img ? (img.link || img.value) : "";
           card.innerHTML = `
@@ -402,6 +482,7 @@
         return grid;
       }
 
+      // ── FILTER LOGIC ──
       function applyFilters() {
         activeFilters = { categorical: {}, numerical: {}, chronological: {} };
 
@@ -464,7 +545,6 @@
         ]);
         if (classesWithFilters.size > 0 && !classesWithFilters.has(cls)) return false;
 
-        // Categorical Check
         if (activeFilters.categorical[cls]) {
           for (const [f, vals] of Object.entries(activeFilters.categorical[cls])) {
             const item = node.data.find(d => d.label === f);
@@ -472,7 +552,6 @@
           }
         }
 
-        // Numerical Check
         if (activeFilters.numerical[cls]) {
           for (const [f, range] of Object.entries(activeFilters.numerical[cls])) {
             const item = node.data.find(d => d.label === f);
@@ -483,7 +562,6 @@
           }
         }
 
-        // Date Check
         if (activeFilters.chronological[cls]) {
           for (const [f, range] of Object.entries(activeFilters.chronological[cls])) {
             const item = node.data.find(d => d.label === f);
@@ -500,6 +578,9 @@
 
       function isImg(d) { return d.label.toLowerCase().includes("image") || /\.(jpg|jpeg|png|webp|svg)$/i.test(d.value); }
       function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+
+      // ── INIT: load server file list on page load ──
+      loadServerFileList();
     </script>
   </body>
 </html>
