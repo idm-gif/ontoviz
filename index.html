@@ -133,23 +133,23 @@
 
         <!-- Polyhedron API tab -->
         <div id="tab-api" class="hidden">
-          <p style="color:#718096; font-size:0.9rem; margin-bottom:1rem;">Завантажте онтологію з <strong>polyhedron.ulif.org.ua</strong> за ідентифікатором</p>
-          <div style="display:flex; gap:0.5rem; margin-bottom:0.7rem;">
-            <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.9rem; font-weight:600;">
-              <input type="radio" name="polyType" value="fname" checked> Публічна (<code>fname</code>)
-            </label>
-            <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.9rem; font-weight:600; margin-left:1rem;">
-              <input type="radio" name="polyType" value="sharedgraph"> Розшарена (<code>sharedgraph</code>)
-            </label>
-          </div>
+          <p style="color:#718096; font-size:0.9rem; margin-bottom:1rem;">
+            Вставте посилання на онтологію або введіть ідентифікатор вручну
+          </p>
           <div style="display:flex; gap:0.5rem;">
-            <input type="text" id="polyIdInput" placeholder="напр. anatomiya-lyudini" style="flex:1;"
-              onkeydown="if(event.key==='Enter') loadFromPolyhedronUI()" />
+            <input type="text" id="polyIdInput"
+              placeholder="URL або ідентифікатор — напр. anatomiya-lyudini"
+              style="flex:1;"
+              onkeydown="if(event.key==='Enter') loadFromPolyhedronUI()"
+              oninput="previewPolyParsed(this.value)" />
             <button onclick="loadFromPolyhedronUI()" style="white-space:nowrap;">Завантажити</button>
           </div>
+          <div id="polyParsedPreview" style="color:#2c7a4b; font-size:0.8rem; margin-top:0.4rem; display:none;"></div>
           <p style="color:#a0aec0; font-size:0.78rem; margin-top:0.5rem;">
-            Приклад: <code>anatomiya-lyudini</code> →
-            <em>polyhedron.ulif.org.ua/?ajaxAction=rawXml&amp;fname=anatomiya-lyudini</em>
+            Підтримувані формати посилань:<br>
+            <code>https://polyhedron.ulif.org.ua/?fname=anatomiya-lyudini</code><br>
+            <code>https://e-devel.ulif.org.ua/?sharedgraph=6980a7263e215&amp;view=graphedit</code><br>
+            <code>https://manlab.ulif.org.ua/?fname=normativni-dokumenti-v1</code>
           </p>
           <div id="polyError" style="color:#e53e3e; font-size:0.85rem; margin-top:0.5rem; display:none;"></div>
         </div>
@@ -277,14 +277,46 @@
       }
 
       // ── POLYHEDRON API ──
+      // Parse a URL or plain identifier → {type, id} or null
+      function parsePolyhedronInput(raw) {
+        const s = raw.trim();
+        if (!s) return null;
+        // Try as URL
+        try {
+          const u = new URL(s);
+          for (const key of ['fname', 'sharedgraph']) {
+            const val = u.searchParams.get(key);
+            if (val && /^[\w\-]+$/.test(val)) return { type: key, id: val };
+          }
+        } catch {}
+        // Plain identifier (fname assumed for bare identifiers)
+        if (/^[\w\-]+$/.test(s)) return { type: 'fname', id: s };
+        return null;
+      }
+
+      function previewPolyParsed(raw) {
+        const preview = document.getElementById('polyParsedPreview');
+        const parsed = parsePolyhedronInput(raw);
+        if (parsed && raw.trim().includes('://')) {
+          preview.textContent = `✔ Розпізнано: ${parsed.type} = "${parsed.id}"`;
+          preview.style.display = '';
+        } else {
+          preview.style.display = 'none';
+        }
+      }
+
       function loadFromPolyhedronUI() {
-        const type = document.querySelector('input[name="polyType"]:checked').value;
-        const id = document.getElementById('polyIdInput').value.trim();
+        const raw = document.getElementById('polyIdInput').value;
         const errEl = document.getElementById('polyError');
-        if (!id) { errEl.textContent = 'Введіть ідентифікатор онтології.'; errEl.style.display = ''; return; }
-        if (!/^[\w\-]+$/.test(id)) { errEl.textContent = 'Ідентифікатор може містити лише літери, цифри, - та _.'; errEl.style.display = ''; return; }
+        const parsed = parsePolyhedronInput(raw);
+        if (!parsed) {
+          errEl.textContent = 'Введіть коректне посилання або ідентифікатор (літери, цифри, - та _).';
+          errEl.style.display = '';
+          return;
+        }
         errEl.style.display = 'none';
-        loadFromPolyhedron(type, id);
+        document.getElementById('polyParsedPreview').style.display = 'none';
+        loadFromPolyhedron(parsed.type, parsed.id);
       }
 
       async function loadFromPolyhedron(type, id, targetNodeGuid) {
