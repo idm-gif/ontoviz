@@ -38,6 +38,37 @@ if ($action === 'get') {
     exit;
 }
 
+// ── PROXY: fetches public/shared XML from polyhedron.ulif.org.ua ──
+if ($action === 'proxy') {
+    $type = $_GET['type'] ?? '';
+    $id   = $_GET['id']   ?? '';
+
+    if (!in_array($type, ['fname', 'sharedgraph'], true) || $id === '') {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid parameters']);
+        exit;
+    }
+    if (!preg_match('/^[\w\-]+$/', $id)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid id']);
+        exit;
+    }
+
+    $url = 'https://polyhedron.ulif.org.ua/?ajaxAction=rawXml&' . $type . '=' . urlencode($id);
+    $ctx = stream_context_create(['http' => ['timeout' => 15, 'user_agent' => 'OntovizProxy/1.0']]);
+    $data = @file_get_contents($url, false, $ctx);
+
+    if ($data === false) {
+        http_response_code(502);
+        echo json_encode(['error' => 'Не вдалося отримати дані від Polyhedron API']);
+        exit;
+    }
+
+    header('Content-Type: application/xml; charset=utf-8');
+    echo $data;
+    exit;
+}
+
 // ── LOGIN ──
 if ($action === 'login') {
     $data = json_decode(file_get_contents('php://input'), true);

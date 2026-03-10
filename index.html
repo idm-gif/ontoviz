@@ -114,6 +114,7 @@
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab('server', this)">🗂 З сервера</button>
           <button class="tab-btn" onclick="switchTab('local', this)">📤 Локальний файл</button>
+          <button class="tab-btn" onclick="switchTab('api', this)">🌐 Polyhedron API</button>
         </div>
 
         <!-- Server tab -->
@@ -128,6 +129,29 @@
         <div id="tab-local" class="hidden">
           <p style="color:#718096; font-size:0.9rem;">Виберіть .xml файл з вашого комп'ютера</p>
           <input type="file" id="fileInput" accept=".xml" />
+        </div>
+
+        <!-- Polyhedron API tab -->
+        <div id="tab-api" class="hidden">
+          <p style="color:#718096; font-size:0.9rem; margin-bottom:1rem;">Завантажте онтологію з <strong>polyhedron.ulif.org.ua</strong> за ідентифікатором</p>
+          <div style="display:flex; gap:0.5rem; margin-bottom:0.7rem;">
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.9rem; font-weight:600;">
+              <input type="radio" name="polyType" value="fname" checked> Публічна (<code>fname</code>)
+            </label>
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.9rem; font-weight:600; margin-left:1rem;">
+              <input type="radio" name="polyType" value="sharedgraph"> Розшарена (<code>sharedgraph</code>)
+            </label>
+          </div>
+          <div style="display:flex; gap:0.5rem;">
+            <input type="text" id="polyIdInput" placeholder="напр. anatomiya-lyudini" style="flex:1;"
+              onkeydown="if(event.key==='Enter') loadFromPolyhedronUI()" />
+            <button onclick="loadFromPolyhedronUI()" style="white-space:nowrap;">Завантажити</button>
+          </div>
+          <p style="color:#a0aec0; font-size:0.78rem; margin-top:0.5rem;">
+            Приклад: <code>anatomiya-lyudini</code> →
+            <em>polyhedron.ulif.org.ua/?ajaxAction=rawXml&amp;fname=anatomiya-lyudini</em>
+          </p>
+          <div id="polyError" style="color:#e53e3e; font-size:0.85rem; margin-top:0.5rem; display:none;"></div>
         </div>
       </article>
     </div>
@@ -175,6 +199,7 @@
       let searchTerm = "";
       let isDetailedMode = false;
       let currentServerFile = null; // tracks loaded server file name
+      let currentApiSource = null;  // {type, id} for polyhedron loads
       const dateRegex = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
 
       // ── TAB SWITCHING ──
@@ -183,6 +208,7 @@
         btn.classList.add('active');
         document.getElementById('tab-server').classList.toggle('hidden', tab !== 'server');
         document.getElementById('tab-local').classList.toggle('hidden', tab !== 'local');
+        document.getElementById('tab-api').classList.toggle('hidden', tab !== 'api');
       }
 
       // ── SERVER FILE LIST ──
@@ -248,6 +274,57 @@
         } catch (err) {
           alert(`Помилка завантаження файлу: ${err.message}`);
         }
+      }
+
+      // ── POLYHEDRON API ──
+      function loadFromPolyhedronUI() {
+        const type = document.querySelector('input[name="polyType"]:checked').value;
+        const id = document.getElementById('polyIdInput').value.trim();
+        const errEl = document.getElementById('polyError');
+        if (!id) { errEl.textContent = 'Введіть ідентифікатор онтології.'; errEl.style.display = ''; return; }
+        if (!/^[\w\-]+$/.test(id)) { errEl.textContent = 'Ідентифікатор може містити лише літери, цифри, - та _.'; errEl.style.display = ''; return; }
+        errEl.style.display = 'none';
+        loadFromPolyhedron(type, id);
+      }
+
+      async function loadFromPolyhedron(type, id, targetNodeGuid) {
+        const errEl = document.getElementById('polyError');
+        if (errEl) errEl.style.display = 'none';
+
+        let text;
+        try {
+          // Try PHP proxy first (avoids CORS)
+          const proxyUrl = `api.php?action=proxy&type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`;
+          let res = await fetch(proxyUrl);
+          if (!res.ok) {
+            // Fall back to direct fetch (only works if polyhedron sets CORS headers)
+            const directUrl = `https://polyhedron.ulif.org.ua/?ajaxAction=rawXml&${encodeURIComponent(type)}=${encodeURIComponent(id)}`;
+            res = await fetch(directUrl);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          }
+          text = await res.text();
+        } catch (err) {
+          const msg = `Помилка: ${err.message}. Переконайтеся, що сервер з api.php доступний або онтологія публічна.`;
+          if (errEl) { errEl.textContent = msg; errEl.style.display = ''; }
+          else alert(msg);
+          return;
+        }
+
+        // Check if it looks like XML (not an error page)
+        if (!text.trim().startsWith('<')) {
+          const msg = 'Отримана відповідь не є XML. Перевірте ідентифікатор онтології.';
+          if (errEl) { errEl.textContent = msg; errEl.style.display = ''; }
+          else alert(msg);
+          return;
+        }
+
+        currentServerFile = null;
+        currentApiSource = { type, id };
+        document.getElementById('inputScreen').classList.add('hidden');
+        document.getElementById('appContainer').classList.remove('hidden');
+        document.getElementById('shareBtn').classList.remove('hidden');
+        parseXML(text, targetNodeGuid);
+        updateURL();
       }
 
       // ── LOCAL FILE ──
@@ -620,22 +697,34 @@
 
       // ── URL & SHARING ──
       function updateURL() {
-        if (!currentServerFile) return;
         const params = new URLSearchParams();
-        params.set('file', currentServerFile);
-        // Include node guid if not at root
+        if (currentServerFile) {
+          params.set('file', currentServerFile);
+        } else if (currentApiSource) {
+          params.set('source', 'polyhedron');
+          params.set('type', currentApiSource.type);
+          params.set('id', currentApiSource.id);
+        } else {
+          return;
+        }
         if (currentNode && currentNode !== rootNode) {
           params.set('node', currentNode.guid);
         }
-        const newURL = location.pathname + '?' + params.toString();
-        history.replaceState(null, '', newURL);
+        history.replaceState(null, '', location.pathname + '?' + params.toString());
       }
 
       function getShareURL() {
-        if (!currentServerFile) return location.href;
         const url = new URL(location.href);
         url.search = '';
-        url.searchParams.set('file', currentServerFile);
+        if (currentServerFile) {
+          url.searchParams.set('file', currentServerFile);
+        } else if (currentApiSource) {
+          url.searchParams.set('source', 'polyhedron');
+          url.searchParams.set('type', currentApiSource.type);
+          url.searchParams.set('id', currentApiSource.id);
+        } else {
+          return location.href;
+        }
         if (currentNode && currentNode !== rootNode) {
           url.searchParams.set('node', currentNode.guid);
         }
@@ -672,6 +761,7 @@
 
       function goHome() {
         currentServerFile = null;
+        currentApiSource = null;
         history.replaceState(null, '', location.pathname);
         location.reload();
       }
@@ -679,15 +769,25 @@
       // ── INIT ──
       (async function init() {
         const params = new URLSearchParams(location.search);
-        const fileParam = params.get('file');
-        const nodeParam = params.get('node');
+        const fileParam   = params.get('file');
+        const sourceParam = params.get('source');
+        const nodeParam   = params.get('node');
+
         if (fileParam) {
-          // Detect PHP availability before loading shared file
+          // Detect PHP availability before loading shared server file
           try {
             const probe = await fetch('api.php?action=list');
             if (probe.ok) hasPHP = true;
           } catch {}
           loadServerFile(fileParam, nodeParam || null);
+        } else if (sourceParam === 'polyhedron') {
+          const type = params.get('type');
+          const id   = params.get('id');
+          if (type && id) {
+            loadFromPolyhedron(type, id, nodeParam || null);
+          } else {
+            loadServerFileList();
+          }
         } else {
           loadServerFileList();
         }
