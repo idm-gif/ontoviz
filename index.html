@@ -79,12 +79,20 @@
       .back-btn:hover { background: #cbd5e0; }
       .content-header { background: #1a365d; color: white; padding: 1.2rem; border-radius: 8px; text-align: center; margin-bottom: 1.5rem; }
       .content-header h2 { margin: 0; font-size: 1.4rem; font-weight: 700; text-transform: uppercase; color: white !important; }
-      .flow-container { display: block; width: 100%; }
-      .flow-container::after { content: ""; display: table; clear: both; }
-      .primary-image-float { float: left; width: 420px; max-width: 100%; margin: 0 1.5rem 1.5rem 0; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-      .data-card-inline { display: inline-flex; flex-direction: column; width: calc(33.3% - 1rem); margin: 0 1rem 1rem 0; background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 0.8rem; float: left; min-height: 75px; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+
+      /* ── Node primary image ── */
+      .node-image-wrap { margin-bottom: 1rem; }
+      .node-primary-image { display: block; max-width: 100%; width: 400px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+
+      /* ── Data fields grid ── */
+      .data-fields-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; align-items: start; margin-bottom: 1rem; }
+      .data-card-inline { background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 0.8rem; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.02); min-width: 0; }
+      .data-card-inline.expanded { grid-column: 1 / -1; }
       .data-label { font-size: 0.7rem; font-weight: 800; color: #3182ce; text-transform: uppercase; margin-bottom: 0.3rem; border-bottom: 1px solid #f7fafc; padding-bottom: 2px; }
-      .data-content { font-size: 0.85rem; color: #2d3748; line-height: 1.4; }
+      .data-content { font-size: 0.85rem; color: #2d3748; line-height: 1.5; word-break: break-word; }
+      .data-content-clamp { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
+      .read-more-btn { background: none; border: none; color: #3182ce; font-size: 0.78rem; cursor: pointer; padding: 4px 0 0; font-weight: 600; display: block; text-align: left; width: 100%; }
+      .read-more-btn:hover { text-decoration: underline; }
       .children-section-title { clear: both; text-align: center; margin: 3rem 0 1.5rem; opacity: 0.6; font-size: 1.1rem; font-weight: bold; border-top: 2px solid #e2e8f0; padding-top: 2rem; }
       .children-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; padding-bottom: 4rem; }
       .child-card { background: white; border: 1px solid #edf2f7; border-radius: 12px; padding: 1.5rem; text-align: center; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
@@ -98,6 +106,8 @@
       /* ── Share button ── */
       .share-btn { background: #38a169; color: white !important; border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: 0.2s; }
       .share-btn:hover { background: #2f855a; }
+      .ext-home-link { background: #553c9a; color: white !important; border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; text-decoration: none !important; white-space: nowrap; transition: 0.2s; }
+      .ext-home-link:hover { background: #44337a; }
       .share-toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #2d3748; color: white; padding: 0.7rem 1.5rem; border-radius: 8px; font-size: 0.85rem; z-index: 9999; box-shadow: 0 8px 20px rgba(0,0,0,0.2); animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s forwards; }
       @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
       @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
@@ -165,6 +175,7 @@
           <div class="nav-links" id="topNav"></div>
           <button id="shareBtn" class="share-btn hidden" onclick="copyShareLink()">📋 Копіювати посилання</button>
           <button class="secondary outline" onclick="goHome()" style="padding:4px 10px; font-size:0.7rem; border-radius:4px; margin-left:auto;">Новий файл</button>
+          <a href="https://ontonew.snman.science/ontoviz/index.html#" class="ext-home-link" target="_blank" rel="noopener">🌐 Головна</a>
         </div>
       </nav>
 
@@ -450,7 +461,12 @@
         let temp = currentNode;
         while (temp) { path.unshift(temp); temp = temp.parent; }
         path.forEach((node, idx) => {
-          if (idx > 0) container.innerHTML += ' <span style="opacity:0.3">/</span> ';
+          if (idx > 0) {
+            const sep = document.createElement('span');
+            sep.style.opacity = '0.3';
+            sep.textContent = ' / ';
+            container.appendChild(sep);
+          }
           const a = document.createElement('span');
           if (idx === path.length - 1) {
             a.className = "breadcrumb-current";
@@ -557,47 +573,91 @@
 
         if (filtering && !isDetailedMode) {
           const results = Array.from(allNodes.values()).filter(validateNode);
-          display.innerHTML = `<h3 class="children-section-title">Знайдено результатів: ${results.length}</h3>`;
+          const title = document.createElement('h3');
+          title.className = "children-section-title";
+          title.textContent = `Знайдено результатів: ${results.length}`;
+          display.appendChild(title);
           display.appendChild(renderGrid(results, true));
-        } else {
-          if (filtering) {
-            const backBtn = document.createElement('div');
-            backBtn.className = "header-controls";
-            backBtn.innerHTML = `<button class="back-btn" onclick="backToResults()">⬅ Повернутися до результатів</button>`;
-            display.appendChild(backBtn);
-          }
+          return;
+        }
 
-          const header = document.createElement('div');
-          header.className = "content-header";
-          header.innerHTML = `<h2>${currentNode.name}</h2>`;
-          display.appendChild(header);
+        if (filtering) {
+          const backBtn = document.createElement('div');
+          backBtn.className = "header-controls";
+          backBtn.innerHTML = `<button class="back-btn" onclick="backToResults()">⬅ Повернутися до результатів</button>`;
+          display.appendChild(backBtn);
+        }
 
-          const flow = document.createElement('div');
-          flow.className = "flow-container";
+        const header = document.createElement('div');
+        header.className = "content-header";
+        const h2 = document.createElement('h2');
+        h2.textContent = currentNode.name;
+        header.appendChild(h2);
+        display.appendChild(header);
 
-          const imgs = currentNode.data.filter(isImg);
-          const info = currentNode.data.filter(d => !isImg(d));
+        const imgs = currentNode.data.filter(isImg);
+        const info = currentNode.data.filter(d => !isImg(d));
 
-          if (imgs.length > 0) {
-            const img = document.createElement('img');
-            img.className = "primary-image-float";
-            img.src = imgs[0].link || imgs[0].value;
-            flow.appendChild(img);
-          }
+        if (imgs.length > 0) {
+          const wrap = document.createElement('div');
+          wrap.className = "node-image-wrap";
+          const img = document.createElement('img');
+          img.className = "node-primary-image";
+          img.src = imgs[0].link || imgs[0].value;
+          img.alt = currentNode.name;
+          wrap.appendChild(img);
+          display.appendChild(wrap);
+        }
+
+        if (info.length > 0) {
+          const grid = document.createElement('div');
+          grid.className = "data-fields-grid";
 
           info.forEach(t => {
             const card = document.createElement('div');
             card.className = "data-card-inline";
-            card.innerHTML = `<div class="data-label">${t.label}</div><div class="data-content">${t.value.replace(/\n/g, '<br>')}</div>`;
-            flow.appendChild(card);
+
+            const label = document.createElement('div');
+            label.className = "data-label";
+            label.textContent = t.label;
+
+            const content = document.createElement('div');
+            content.className = "data-content data-content-clamp";
+            content.innerHTML = t.value.replace(/\n/g, '<br>');
+
+            card.appendChild(label);
+            card.appendChild(content);
+            grid.appendChild(card);
           });
 
-          display.appendChild(flow);
+          display.appendChild(grid);
 
-          if (currentNode.children.length > 0) {
-            display.innerHTML += `<h3 class="children-section-title">Підрозділи / Елементи (${currentNode.children.length})</h3>`;
-            display.appendChild(renderGrid(currentNode.children, false));
-          }
+          // After layout: add "read more" to cards whose content is clamped
+          requestAnimationFrame(() => {
+            grid.querySelectorAll('.data-card-inline').forEach(card => {
+              const content = card.querySelector('.data-content');
+              if (!content) return;
+              if (content.scrollHeight > content.clientHeight + 2) {
+                const btn = document.createElement('button');
+                btn.className = 'read-more-btn';
+                btn.textContent = '▼ Читати далі';
+                btn.onclick = () => {
+                  const expanded = card.classList.toggle('expanded');
+                  content.classList.toggle('data-content-clamp', !expanded);
+                  btn.textContent = expanded ? '▲ Згорнути' : '▼ Читати далі';
+                };
+                card.appendChild(btn);
+              }
+            });
+          });
+        }
+
+        if (currentNode.children.length > 0) {
+          const sep = document.createElement('h3');
+          sep.className = "children-section-title";
+          sep.textContent = `Підрозділи / Елементи (${currentNode.children.length})`;
+          display.appendChild(sep);
+          display.appendChild(renderGrid(currentNode.children, false));
         }
       }
 
