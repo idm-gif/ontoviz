@@ -186,36 +186,57 @@
       }
 
       // ── SERVER FILE LIST ──
+      // Detect if PHP backend is available; fall back to static xml/ folder
+      let hasPHP = false;
+
       async function loadServerFileList() {
         const container = document.getElementById('serverFileList');
         container.innerHTML = '<p class="empty-state">⏳ Завантаження...</p>';
         try {
+          // Try PHP API first
           const res = await fetch('api.php?action=list');
+          if (!res.ok) throw new Error('No PHP');
           const files = await res.json();
-          const xmlFiles = files.filter(f => f.toLowerCase().endsWith('.xml'));
-          if (xmlFiles.length === 0) {
-            container.innerHTML = '<p class="empty-state">📭 Папка <code>xml/</code> порожня.<br>Помістіть .xml файли у папку <code>xml/</code> на сервері.</p>';
-            return;
+          hasPHP = true;
+          renderFileList(container, files.filter(f => f.toLowerCase().endsWith('.xml')));
+        } catch {
+          // Fallback: try static file index (xml/index.json)
+          try {
+            const res2 = await fetch('xml/index.json');
+            if (!res2.ok) throw new Error('No index');
+            const files = await res2.json();
+            renderFileList(container, files);
+          } catch {
+            container.innerHTML = '<p class="empty-state">📭 Немає доступних XML-файлів на сервері.<br>Завантажте локальний файл через другу вкладку.</p>';
           }
-          const grid = document.createElement('div');
-          grid.className = "server-file-grid";
-          xmlFiles.forEach(filename => {
-            const card = document.createElement('div');
-            card.className = "server-file-card";
-            card.innerHTML = `<span class="file-icon">📄</span><span class="file-name">${filename}</span>`;
-            card.onclick = () => loadServerFile(filename);
-            grid.appendChild(card);
-          });
-          container.innerHTML = '';
-          container.appendChild(grid);
-        } catch (err) {
-          container.innerHTML = `<p class="empty-state">⚠️ Не вдалося отримати список файлів.<br><small>${err.message}</small></p>`;
         }
+      }
+
+      function renderFileList(container, xmlFiles) {
+        if (xmlFiles.length === 0) {
+          container.innerHTML = '<p class="empty-state">📭 Папка <code>xml/</code> порожня.</p>';
+          return;
+        }
+        const grid = document.createElement('div');
+        grid.className = "server-file-grid";
+        xmlFiles.forEach(filename => {
+          const card = document.createElement('div');
+          card.className = "server-file-card";
+          card.innerHTML = `<span class="file-icon">📄</span><span class="file-name">${filename}</span>`;
+          card.onclick = () => loadServerFile(filename);
+          grid.appendChild(card);
+        });
+        container.innerHTML = '';
+        container.appendChild(grid);
       }
 
       async function loadServerFile(filename, targetNodeGuid) {
         try {
-          const res = await fetch(`api.php?action=get&file=${encodeURIComponent(filename)}`);
+          // Try PHP API, fall back to direct xml/ path
+          const url = hasPHP
+            ? `api.php?action=get&file=${encodeURIComponent(filename)}`
+            : `xml/${encodeURIComponent(filename)}`;
+          const res = await fetch(url);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const text = await res.text();
           currentServerFile = filename;
@@ -656,12 +677,16 @@
       }
 
       // ── INIT ──
-      (function init() {
+      (async function init() {
         const params = new URLSearchParams(location.search);
         const fileParam = params.get('file');
         const nodeParam = params.get('node');
         if (fileParam) {
-          // Auto-load the shared file
+          // Detect PHP availability before loading shared file
+          try {
+            const probe = await fetch('api.php?action=list');
+            if (probe.ok) hasPHP = true;
+          } catch {}
           loadServerFile(fileParam, nodeParam || null);
         } else {
           loadServerFileList();
