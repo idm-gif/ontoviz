@@ -80,25 +80,33 @@
       .content-header { background: #1a365d; color: white; padding: 1.2rem; border-radius: 8px; text-align: center; margin-bottom: 1.5rem; }
       .content-header h2 { margin: 0; font-size: 1.4rem; font-weight: 700; text-transform: uppercase; color: white !important; }
 
-      /* ── Media section (image + carousel side by side) ── */
-      .media-section { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; align-items: flex-start; }
-      .node-image-wrap { flex: 0 0 38%; max-width: 420px; }
-      .node-primary-image { display: block; width: 100%; max-height: 320px; object-fit: cover; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+      /* ── Media section (image on top, carousel below, full width) ── */
+      .media-section { width: 100%; margin-bottom: 1.5rem; }
+      .node-image-wrap { width: 100%; text-align: center; margin-bottom: 0; }
+      .node-primary-image { display: block; max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin: 0 auto; }
 
       /* ── Carousel ── */
-      .carousel-wrap { flex: 1; position: relative; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #f8fafc; display: flex; flex-direction: column; min-height: 240px; }
-      .carousel-track { flex: 1; position: relative; overflow: hidden; min-height: 240px; }
-      .carousel-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; align-items: center; justify-content: center; }
+      .carousel-wrap { width: 100%; position: relative; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; overflow: hidden; background: #f0f4f8; display: flex; flex-direction: column; }
+      .carousel-track { position: relative; overflow: hidden; min-height: 60px; display: flex; align-items: center; justify-content: center; }
+      .carousel-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; align-items: center; justify-content: center; padding: 0.5rem; box-sizing: border-box; }
       .carousel-slide.active { display: flex; }
-      .carousel-media { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px; }
-      .carousel-media-video { max-width: 100%; max-height: 300px; border-radius: 4px; }
+      .carousel-media { max-width: 100%; max-height: 350px; object-fit: contain; border-radius: 4px; }
+      .carousel-media-video { max-width: 100%; max-height: 350px; border-radius: 4px; }
       .carousel-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); color: white; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; z-index: 10; padding: 0; line-height: 1; transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
       .carousel-nav:hover { background: rgba(0,0,0,0.7); }
       .carousel-prev { left: 8px; }
       .carousel-next { right: 8px; }
-      .carousel-indicators { display: flex; justify-content: center; gap: 6px; padding: 8px; background: rgba(255,255,255,0.9); flex-shrink: 0; }
-      .carousel-dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e0; border: none; cursor: pointer; padding: 0; transition: background 0.2s; }
-      .carousel-dot.active { background: #3182ce; }
+      .carousel-indicators { display: flex; justify-content: center; gap: 8px; padding: 10px 8px; background: #e8ecf1; flex-shrink: 0; border-top: 1px solid #dde3ea; }
+      .carousel-dot { width: 12px; height: 12px; border-radius: 50%; background: #cbd5e0; border: 2px solid #a0aec0; cursor: pointer; padding: 0; transition: 0.2s; }
+      .carousel-dot.active { background: #3182ce; border-color: #2b6cb0; transform: scale(1.2); }
+      .carousel-counter { text-align: center; font-size: 0.85rem; color: #718096; padding: 4px 0 2px; background: #e8ecf1; }
+
+      /* ── Grouped data card ── */
+      .data-group-card { background: white; border: 1px solid #edf2f7; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+      .data-group-header { font-size: 0.91rem; font-weight: 800; color: #3182ce; text-transform: uppercase; padding: 0.6rem 0.8rem; background: #f0f5ff; border-bottom: 2px solid #d0e0f7; }
+      .data-group-items { display: flex; flex-direction: column; flex: 1; }
+      .data-group-item { padding: 0.4rem 0.8rem; font-size: 1.1rem; color: #2d3748; line-height: 1.5; word-break: break-word; border-bottom: 1px solid #f0f4f8; }
+      .data-group-item:last-child { border-bottom: none; }
 
       /* ── Data fields grid ── */
       .data-fields-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; align-items: stretch; }
@@ -614,28 +622,9 @@
         const imgs = currentNode.data.filter(isMedia);
         const info = currentNode.data.filter(d => !isMedia(d));
 
+        // Media section: image on top, carousel strip below (full width)
         const mediaSection = document.createElement('div');
         mediaSection.className = 'media-section';
-
-        const imgWrap = document.createElement('div');
-        imgWrap.className = 'node-image-wrap';
-        if (imgs.length > 0 && !isVideo(imgs[0])) {
-          const img = document.createElement('img');
-          img.className = 'node-primary-image';
-          img.src = imgs[0].link || imgs[0].value;
-          img.alt = currentNode.name;
-          imgWrap.appendChild(img);
-        } else if (imgs.length > 0 && isVideo(imgs[0])) {
-          const video = document.createElement('video');
-          video.controls = true;
-          video.className = 'node-primary-image';
-          video.src = imgs[0].link || imgs[0].value;
-          imgWrap.appendChild(video);
-        } else {
-          imgWrap.style.cssText = 'flex:0 0 38%; max-width:420px; min-height:200px; background:#edf2f7; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:1rem;';
-          imgWrap.textContent = 'Немає зображення';
-        }
-        mediaSection.appendChild(imgWrap);
         mediaSection.appendChild(renderCarousel(imgs));
         display.appendChild(mediaSection);
 
@@ -643,26 +632,56 @@
           const grid = document.createElement('div');
           grid.className = "data-fields-grid";
 
+          // Group data fields by label
+          const grouped = new Map();
           info.forEach(t => {
-            const card = document.createElement('div');
-            card.className = "data-card-inline";
+            if (!grouped.has(t.label)) grouped.set(t.label, []);
+            grouped.get(t.label).push(t.value);
+          });
 
-            const label = document.createElement('div');
-            label.className = "data-label";
-            label.textContent = t.label;
+          grouped.forEach((values, label) => {
+            if (values.length > 1) {
+              // Multi-value group card
+              const groupCard = document.createElement('div');
+              groupCard.className = 'data-group-card';
 
-            const content = document.createElement('div');
-            content.className = "data-content data-content-clamp";
-            content.innerHTML = t.value.replace(/\n/g, '<br>');
+              const header = document.createElement('div');
+              header.className = 'data-group-header';
+              header.textContent = label;
+              groupCard.appendChild(header);
 
-            card.appendChild(label);
-            card.appendChild(content);
-            grid.appendChild(card);
+              const itemsWrap = document.createElement('div');
+              itemsWrap.className = 'data-group-items';
+              values.forEach(v => {
+                const item = document.createElement('div');
+                item.className = 'data-group-item';
+                item.innerHTML = v.replace(/\n/g, '<br>');
+                itemsWrap.appendChild(item);
+              });
+              groupCard.appendChild(itemsWrap);
+              grid.appendChild(groupCard);
+            } else {
+              // Single value card
+              const card = document.createElement('div');
+              card.className = "data-card-inline";
+
+              const labelEl = document.createElement('div');
+              labelEl.className = "data-label";
+              labelEl.textContent = label;
+
+              const content = document.createElement('div');
+              content.className = "data-content data-content-clamp";
+              content.innerHTML = values[0].replace(/\n/g, '<br>');
+
+              card.appendChild(labelEl);
+              card.appendChild(content);
+              grid.appendChild(card);
+            }
           });
 
           display.appendChild(grid);
 
-          // After layout: add "read more" to cards whose content is clamped
+          // After layout: add "read more" to single-value cards whose content is clamped
           requestAnimationFrame(() => {
             grid.querySelectorAll('.data-card-inline').forEach(card => {
               const content = card.querySelector('.data-content');
@@ -824,10 +843,16 @@
         wrap.className = 'carousel-wrap';
 
         if (items.length === 0) {
+          wrap.style.minHeight = '120px';
           const empty = document.createElement('div');
-          empty.style.cssText = 'flex:1; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:1rem;';
-          empty.textContent = 'Медіа відсутні';
+          empty.style.cssText = 'flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#a0aec0; font-size:1rem; gap:0.5rem;';
+          empty.innerHTML = '<span style="font-size:2rem;">🖼</span>Медіа відсутні';
           wrap.appendChild(empty);
+          // Still show empty carousel bar
+          const bar = document.createElement('div');
+          bar.className = 'carousel-indicators';
+          bar.innerHTML = '<span style="color:#a0aec0; font-size:0.8rem;">0 / 0</span>';
+          wrap.appendChild(bar);
           return wrap;
         }
 
@@ -857,43 +882,58 @@
           return slide;
         });
 
+        // Auto-size track to first image
+        requestAnimationFrame(() => {
+          const firstMedia = track.querySelector('.carousel-media, .carousel-media-video');
+          if (firstMedia && firstMedia.tagName === 'IMG') {
+            firstMedia.onload = () => { track.style.minHeight = Math.min(firstMedia.naturalHeight, 400) + 'px'; };
+          }
+        });
+
         wrap.appendChild(track);
 
-        if (items.length > 1) {
-          const prev = document.createElement('button');
-          prev.className = 'carousel-nav carousel-prev';
-          prev.innerHTML = '&#10094;';
+        // Always show navigation UI — even with 1 item
+        const prev = document.createElement('button');
+        prev.className = 'carousel-nav carousel-prev';
+        prev.innerHTML = '&#10094;';
 
-          const next = document.createElement('button');
-          next.className = 'carousel-nav carousel-next';
-          next.innerHTML = '&#10095;';
+        const next = document.createElement('button');
+        next.className = 'carousel-nav carousel-next';
+        next.innerHTML = '&#10095;';
 
-          const indic = document.createElement('div');
-          indic.className = 'carousel-indicators';
+        // Counter label
+        const counter = document.createElement('div');
+        counter.className = 'carousel-counter';
+        counter.textContent = `1 / ${items.length} (зображення/відео)`;
 
-          const dots = items.map((_, i) => {
-            const dot = document.createElement('button');
-            dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
-            dot.onclick = () => goTo(i);
-            indic.appendChild(dot);
-            return dot;
-          });
+        // Dot indicators
+        const indic = document.createElement('div');
+        indic.className = 'carousel-indicators';
 
-          function goTo(n) {
-            slides[current].classList.remove('active');
-            dots[current].classList.remove('active');
-            current = ((n % items.length) + items.length) % items.length;
-            slides[current].classList.add('active');
-            dots[current].classList.add('active');
-          }
+        const dots = items.map((_, i) => {
+          const dot = document.createElement('button');
+          dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+          dot.onclick = () => goTo(i);
+          indic.appendChild(dot);
+          return dot;
+        });
 
-          prev.onclick = () => goTo(current - 1);
-          next.onclick = () => goTo(current + 1);
-
-          wrap.appendChild(prev);
-          wrap.appendChild(next);
-          wrap.appendChild(indic);
+        function goTo(n) {
+          slides[current].classList.remove('active');
+          dots[current].classList.remove('active');
+          current = ((n % items.length) + items.length) % items.length;
+          slides[current].classList.add('active');
+          dots[current].classList.add('active');
+          counter.textContent = `${current + 1} / ${items.length} (зображення/відео)`;
         }
+
+        prev.onclick = () => goTo(current - 1);
+        next.onclick = () => goTo(current + 1);
+
+        wrap.appendChild(prev);
+        wrap.appendChild(next);
+        wrap.appendChild(counter);
+        wrap.appendChild(indic);
 
         return wrap;
       }
