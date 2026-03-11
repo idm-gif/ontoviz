@@ -116,9 +116,10 @@
       .child-thumb-wrap { width: 85px; height: 85px; border-radius: 50%; overflow: hidden; margin: 0 auto 1rem; border: 4px solid #f7fafc; background: #edf2f7; }
       .child-thumb { width: 100%; height: 100%; object-fit: cover; }
       .child-card h4 { font-size: 0.92rem; margin: 0; color: #2d3748; font-weight: 700; line-height: 1.3; }
-      /* ── Children class group ── */
-      .children-class-group { margin-bottom: 2rem; }
-      .children-class-group-title { font-size: 1rem; font-weight: 800; color: #2c5282; text-transform: uppercase; background: #ebf4ff; border: 1px solid #bee3f8; border-radius: 8px; padding: 0.6rem 1.2rem; margin-bottom: 1rem; letter-spacing: 0.03em; }
+      /* ── Grouped data fields ── */
+      .data-card-grouped { background: #f0f7ff; border: 1px solid #bee3f8; }
+      .data-group-values { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.3rem; }
+      .data-group-chip { display: inline-block; background: white; border: 1px solid #cbd5e0; border-radius: 6px; padding: 0.3rem 0.7rem; font-size: 0.95rem; color: #2d3748; font-weight: 500; line-height: 1.4; }
 
       .search-container input { border-radius: 50px; padding-left: 1.5rem; max-width: 550px; margin: 1rem auto 2.5rem; display: block; border: 2px solid #e2e8f0; }
       .hidden { display: none !important; }
@@ -644,24 +645,59 @@
         display.appendChild(mediaSection);
 
         if (info.length > 0) {
+          // Group data fields by label to merge duplicates
+          const grouped = new Map();
+          const orderKeys = [];
+          info.forEach(t => {
+            if (!grouped.has(t.label)) {
+              grouped.set(t.label, []);
+              orderKeys.push(t.label);
+            }
+            grouped.get(t.label).push(t.value);
+          });
+
           const grid = document.createElement('div');
           grid.className = "data-fields-grid";
 
-          info.forEach(t => {
-            const card = document.createElement('div');
-            card.className = "data-card-inline";
+          orderKeys.forEach(lbl => {
+            const values = grouped.get(lbl);
+            if (values.length > 1) {
+              // Grouped card: one title, multiple values as chips/tags
+              const card = document.createElement('div');
+              card.className = "data-card-inline data-card-grouped";
 
-            const label = document.createElement('div');
-            label.className = "data-label";
-            label.textContent = t.label;
+              const label = document.createElement('div');
+              label.className = "data-label";
+              label.textContent = lbl;
 
-            const content = document.createElement('div');
-            content.className = "data-content data-content-clamp";
-            content.innerHTML = t.value.replace(/\n/g, '<br>');
+              const content = document.createElement('div');
+              content.className = "data-group-values";
+              values.forEach(v => {
+                const chip = document.createElement('span');
+                chip.className = 'data-group-chip';
+                chip.textContent = v;
+                content.appendChild(chip);
+              });
 
-            card.appendChild(label);
-            card.appendChild(content);
-            grid.appendChild(card);
+              card.appendChild(label);
+              card.appendChild(content);
+              grid.appendChild(card);
+            } else {
+              const card = document.createElement('div');
+              card.className = "data-card-inline";
+
+              const label = document.createElement('div');
+              label.className = "data-label";
+              label.textContent = lbl;
+
+              const content = document.createElement('div');
+              content.className = "data-content data-content-clamp";
+              content.innerHTML = values[0].replace(/\n/g, '<br>');
+
+              card.appendChild(label);
+              card.appendChild(content);
+              grid.appendChild(card);
+            }
           });
 
           display.appendChild(grid);
@@ -696,20 +732,9 @@
       }
 
       function renderGrid(nodes, isSearchResult) {
-        // Group nodes by nclass
-        const groups = new Map();
+        const grid = document.createElement('div');
+        grid.className = "children-grid";
         nodes.forEach(n => {
-          const cls = n.nclass || '';
-          if (!groups.has(cls)) groups.set(cls, []);
-          groups.get(cls).push(n);
-        });
-
-        // If all nodes share the same class, render a flat grid (no grouping needed)
-        const needsGrouping = groups.size > 1;
-
-        const container = document.createElement('div');
-
-        function buildCard(n) {
           const card = document.createElement('div');
           card.className = "child-card";
           card.onclick = () => {
@@ -728,35 +753,11 @@
               ${imgSrc ? `<img class="child-thumb" src="${imgSrc}" loading="lazy">` : ''}
             </div>
             <h4>${n.name}</h4>
+            <div style="font-size:0.7rem; opacity:0.5; margin-top:5px;">${n.nclass}</div>
           `;
-          return card;
-        }
-
-        if (needsGrouping) {
-          for (const [cls, groupNodes] of groups) {
-            const groupDiv = document.createElement('div');
-            groupDiv.className = 'children-class-group';
-
-            const title = document.createElement('div');
-            title.className = 'children-class-group-title';
-            title.textContent = cls || 'Без класу';
-            groupDiv.appendChild(title);
-
-            const grid = document.createElement('div');
-            grid.className = 'children-grid';
-            groupNodes.forEach(n => grid.appendChild(buildCard(n)));
-            groupDiv.appendChild(grid);
-
-            container.appendChild(groupDiv);
-          }
-        } else {
-          const grid = document.createElement('div');
-          grid.className = 'children-grid';
-          nodes.forEach(n => grid.appendChild(buildCard(n)));
-          container.appendChild(grid);
-        }
-
-        return container;
+          grid.appendChild(card);
+        });
+        return grid;
       }
 
       // ── FILTER LOGIC ──
