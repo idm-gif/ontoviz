@@ -80,18 +80,34 @@
       .content-header { background: #1a365d; color: white; padding: 1.2rem; border-radius: 8px; text-align: center; margin-bottom: 1.5rem; }
       .content-header h2 { margin: 0; font-size: 1.4rem; font-weight: 700; text-transform: uppercase; color: white !important; }
 
-      /* ── Node primary image ── */
-      .node-image-wrap { margin-bottom: 1rem; }
-      .node-primary-image { display: block; max-width: 100%; width: 400px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+      /* ── Media section (image + carousel side by side) ── */
+      .media-section { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; align-items: flex-start; }
+      .node-image-wrap { flex: 0 0 38%; max-width: 420px; }
+      .node-primary-image { display: block; width: 100%; max-height: 320px; object-fit: cover; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+
+      /* ── Carousel ── */
+      .carousel-wrap { flex: 1; position: relative; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #f8fafc; display: flex; flex-direction: column; min-height: 240px; }
+      .carousel-track { flex: 1; position: relative; overflow: hidden; min-height: 240px; }
+      .carousel-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; align-items: center; justify-content: center; }
+      .carousel-slide.active { display: flex; }
+      .carousel-media { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px; }
+      .carousel-media-video { max-width: 100%; max-height: 300px; border-radius: 4px; }
+      .carousel-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); color: white; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; z-index: 10; padding: 0; line-height: 1; transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
+      .carousel-nav:hover { background: rgba(0,0,0,0.7); }
+      .carousel-prev { left: 8px; }
+      .carousel-next { right: 8px; }
+      .carousel-indicators { display: flex; justify-content: center; gap: 6px; padding: 8px; background: rgba(255,255,255,0.9); flex-shrink: 0; }
+      .carousel-dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e0; border: none; cursor: pointer; padding: 0; transition: background 0.2s; }
+      .carousel-dot.active { background: #3182ce; }
 
       /* ── Data fields grid ── */
-      .data-fields-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; align-items: start; margin-bottom: 1rem; }
-      .data-card-inline { background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 0.8rem; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.02); min-width: 0; }
+      .data-fields-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; align-items: stretch; }
+      .data-card-inline { background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 0.8rem; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.02); min-width: 0; display: flex; flex-direction: column; }
       .data-card-inline.expanded { grid-column: 1 / -1; }
-      .data-label { font-size: 0.7rem; font-weight: 800; color: #3182ce; text-transform: uppercase; margin-bottom: 0.3rem; border-bottom: 1px solid #f7fafc; padding-bottom: 2px; }
-      .data-content { font-size: 0.85rem; color: #2d3748; line-height: 1.5; word-break: break-word; }
+      .data-label { font-size: 0.91rem; font-weight: 800; color: #3182ce; text-transform: uppercase; margin-bottom: 0.3rem; border-bottom: 1px solid #f7fafc; padding-bottom: 2px; }
+      .data-content { font-size: 1.1rem; color: #2d3748; line-height: 1.5; word-break: break-word; flex: 1; }
       .data-content-clamp { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
-      .read-more-btn { background: none; border: none; color: #3182ce; font-size: 0.78rem; cursor: pointer; padding: 4px 0 0; font-weight: 600; display: block; text-align: left; width: 100%; }
+      .read-more-btn { background: none; border: none; color: #3182ce; font-size: 1.01rem; cursor: pointer; padding: 4px 0 0; font-weight: 600; display: block; text-align: left; width: 100%; flex-shrink: 0; }
       .read-more-btn:hover { text-decoration: underline; }
       .children-section-title { clear: both; text-align: center; margin: 3rem 0 1.5rem; opacity: 0.6; font-size: 1.1rem; font-weight: bold; border-top: 2px solid #e2e8f0; padding-top: 2rem; }
       .children-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; padding-bottom: 4rem; }
@@ -595,19 +611,33 @@
         header.appendChild(h2);
         display.appendChild(header);
 
-        const imgs = currentNode.data.filter(isImg);
-        const info = currentNode.data.filter(d => !isImg(d));
+        const imgs = currentNode.data.filter(isMedia);
+        const info = currentNode.data.filter(d => !isMedia(d));
 
-        if (imgs.length > 0) {
-          const wrap = document.createElement('div');
-          wrap.className = "node-image-wrap";
+        const mediaSection = document.createElement('div');
+        mediaSection.className = 'media-section';
+
+        const imgWrap = document.createElement('div');
+        imgWrap.className = 'node-image-wrap';
+        if (imgs.length > 0 && !isVideo(imgs[0])) {
           const img = document.createElement('img');
-          img.className = "node-primary-image";
+          img.className = 'node-primary-image';
           img.src = imgs[0].link || imgs[0].value;
           img.alt = currentNode.name;
-          wrap.appendChild(img);
-          display.appendChild(wrap);
+          imgWrap.appendChild(img);
+        } else if (imgs.length > 0 && isVideo(imgs[0])) {
+          const video = document.createElement('video');
+          video.controls = true;
+          video.className = 'node-primary-image';
+          video.src = imgs[0].link || imgs[0].value;
+          imgWrap.appendChild(video);
+        } else {
+          imgWrap.style.cssText = 'flex:0 0 38%; max-width:420px; min-height:200px; background:#edf2f7; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:1rem;';
+          imgWrap.textContent = 'Немає зображення';
         }
+        mediaSection.appendChild(imgWrap);
+        mediaSection.appendChild(renderCarousel(imgs));
+        display.appendChild(mediaSection);
 
         if (info.length > 0) {
           const grid = document.createElement('div');
@@ -784,8 +814,89 @@
         return true;
       }
 
-      function isImg(d) { return d.label.toLowerCase().includes("image") || /\.(jpg|jpeg|png|webp|svg)$/i.test(d.value); }
+      function isImg(d) { return d.label.toLowerCase().includes("image") || /\.(jpg|jpeg|png|webp|svg)$/i.test(d.link || d.value); }
+      function isVideo(d) { return d.label.toLowerCase().includes("video") || /\.(mp4|webm|ogg|avi|mov)$/i.test(d.link || d.value); }
+      function isMedia(d) { return isImg(d) || isVideo(d); }
       function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+
+      function renderCarousel(items) {
+        const wrap = document.createElement('div');
+        wrap.className = 'carousel-wrap';
+
+        if (items.length === 0) {
+          const empty = document.createElement('div');
+          empty.style.cssText = 'flex:1; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:1rem;';
+          empty.textContent = 'Медіа відсутні';
+          wrap.appendChild(empty);
+          return wrap;
+        }
+
+        const track = document.createElement('div');
+        track.className = 'carousel-track';
+        let current = 0;
+
+        const slides = items.map((item, i) => {
+          const slide = document.createElement('div');
+          slide.className = 'carousel-slide' + (i === 0 ? ' active' : '');
+          const src = item.link || item.value;
+          if (isVideo(item)) {
+            const video = document.createElement('video');
+            video.controls = true;
+            video.src = src;
+            video.className = 'carousel-media-video';
+            slide.appendChild(video);
+          } else {
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = item.label;
+            img.className = 'carousel-media';
+            img.loading = 'lazy';
+            slide.appendChild(img);
+          }
+          track.appendChild(slide);
+          return slide;
+        });
+
+        wrap.appendChild(track);
+
+        if (items.length > 1) {
+          const prev = document.createElement('button');
+          prev.className = 'carousel-nav carousel-prev';
+          prev.innerHTML = '&#10094;';
+
+          const next = document.createElement('button');
+          next.className = 'carousel-nav carousel-next';
+          next.innerHTML = '&#10095;';
+
+          const indic = document.createElement('div');
+          indic.className = 'carousel-indicators';
+
+          const dots = items.map((_, i) => {
+            const dot = document.createElement('button');
+            dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+            dot.onclick = () => goTo(i);
+            indic.appendChild(dot);
+            return dot;
+          });
+
+          function goTo(n) {
+            slides[current].classList.remove('active');
+            dots[current].classList.remove('active');
+            current = ((n % items.length) + items.length) % items.length;
+            slides[current].classList.add('active');
+            dots[current].classList.add('active');
+          }
+
+          prev.onclick = () => goTo(current - 1);
+          next.onclick = () => goTo(current + 1);
+
+          wrap.appendChild(prev);
+          wrap.appendChild(next);
+          wrap.appendChild(indic);
+        }
+
+        return wrap;
+      }
 
       // ── URL & SHARING ──
       function updateURL() {
