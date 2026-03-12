@@ -80,28 +80,28 @@
       .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
       .back-btn { background: #e2e8f0; color: #2d3748; border: none; padding: 6px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
       .back-btn:hover { background: #cbd5e0; }
-      .content-header { background: #1a365d; color: white; padding: 0.6rem 1rem; border-radius: 8px; text-align: center; margin-bottom: 1rem; }
-      .content-header h2 { margin: 0; font-size: 1.05rem; font-weight: 700; text-transform: uppercase; color: white !important; }
+      .content-header { background: #1a365d; color: white; padding: 0.7rem 1.2rem; border-radius: 8px; text-align: center; margin: 0 0 1rem; }
+      .content-header h2 { margin: 0; font-size: 1.15rem; font-weight: 700; text-transform: uppercase; color: white !important; letter-spacing: 0.5px; }
 
       /* ── Media section (image above carousel) ── */
       .media-section { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; align-items: center; }
       .media-section.no-media { gap: 0; margin-bottom: 0.5rem; }
-      .node-image-wrap { max-width: 400px; width: 100%; }
+      .node-image-wrap { max-width: 350px; width: 100%; }
       .node-primary-image { display: block; width: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
 
       /* ── Carousel ── */
-      .carousel-wrap { width: 100%; max-width: 400px; position: relative; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #f8fafc; display: flex; flex-direction: column; }
+      .carousel-wrap { width: 100%; max-width: 280px; position: relative; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; background: #f8fafc; display: flex; flex-direction: column; }
       .carousel-track { overflow: hidden; }
       .carousel-slide { display: none; align-items: center; justify-content: center; }
       .carousel-slide.active { display: flex; }
       .carousel-media { max-width: 100%; object-fit: contain; border-radius: 4px; }
       .carousel-media-video { max-width: 100%; border-radius: 4px; }
-      .carousel-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); color: white; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; z-index: 10; padding: 0; line-height: 1; transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
+      .carousel-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 0.85rem; z-index: 10; padding: 0; line-height: 1; transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
       .carousel-nav:hover { background: rgba(0,0,0,0.7); }
       .carousel-prev { left: 8px; }
       .carousel-next { right: 8px; }
-      .carousel-indicators { display: flex; justify-content: center; gap: 6px; padding: 8px; background: rgba(255,255,255,0.9); flex-shrink: 0; }
-      .carousel-dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e0; border: none; cursor: pointer; padding: 0; transition: background 0.2s; }
+      .carousel-indicators { display: flex; justify-content: center; gap: 5px; padding: 6px; background: rgba(255,255,255,0.9); flex-shrink: 0; }
+      .carousel-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e0; border: none; cursor: pointer; padding: 0; transition: background 0.2s; }
       .carousel-dot.active { background: #3182ce; }
 
       /* ── Data fields grid ── */
@@ -224,8 +224,8 @@
             <div id="breadcrumb" class="breadcrumb"></div>
           </div>
           <div class="search-filter-row">
-            <input type="search" id="globalSearch" placeholder="🔍 Пошук за назвою або характеристикою..." oninput="handleSearch(this.value)">
             <button class="filter-nav-btn" onclick="toggleSidebar()">⚙ ФІЛЬТРИ</button>
+            <input type="search" id="globalSearch" placeholder="🔍 Пошук за назвою або характеристикою..." oninput="handleSearch(this.value)">
           </div>
           <div id="mainDisplay"></div>
         </main>
@@ -618,6 +618,12 @@
           display.appendChild(backBtn);
         }
 
+        const header = document.createElement('div');
+        header.className = "content-header";
+        const h2 = document.createElement('h2');
+        h2.textContent = currentNode.name;
+        header.appendChild(h2);
+        display.appendChild(header);
 
         const imgs = currentNode.data.filter(isMedia);
         const info = currentNode.data.filter(d => !isMedia(d));
@@ -640,7 +646,7 @@
           video.src = imgs[0].link || imgs[0].value;
           imgWrap.appendChild(video);
         } else {
-          imgWrap.style.cssText = 'max-width:400px; width:100%; padding:0.5rem; background:#edf2f7; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:0.85rem;';
+          imgWrap.style.cssText = 'max-width:350px; width:100%; padding:0.5rem; background:#edf2f7; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:0.85rem;';
           imgWrap.textContent = 'Немає зображення';
         }
         mediaSection.appendChild(imgWrap);
