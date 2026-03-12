@@ -88,11 +88,11 @@
 
       /* ── Carousel ── */
       .carousel-wrap { width: 100%; max-width: 600px; position: relative; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #f8fafc; display: flex; flex-direction: column; }
-      .carousel-track { position: relative; overflow: hidden; min-height: 80px; }
-      .carousel-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; align-items: center; justify-content: center; }
+      .carousel-track { overflow: hidden; }
+      .carousel-slide { display: none; align-items: center; justify-content: center; }
       .carousel-slide.active { display: flex; }
-      .carousel-media { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px; }
-      .carousel-media-video { max-width: 100%; max-height: 300px; border-radius: 4px; }
+      .carousel-media { max-width: 100%; object-fit: contain; border-radius: 4px; }
+      .carousel-media-video { max-width: 100%; border-radius: 4px; }
       .carousel-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); color: white; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; z-index: 10; padding: 0; line-height: 1; transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
       .carousel-nav:hover { background: rgba(0,0,0,0.7); }
       .carousel-prev { left: 8px; }
