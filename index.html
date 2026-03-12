@@ -82,8 +82,9 @@
 
       /* ── Media section (image above carousel) ── */
       .media-section { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; align-items: center; }
+      .media-section.no-media { gap: 0; margin-bottom: 0.5rem; }
       .node-image-wrap { max-width: 600px; width: 100%; }
-      .node-primary-image { display: block; width: 100%; max-height: 420px; object-fit: contain; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+      .node-primary-image { display: block; width: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
 
       /* ── Carousel ── */
       .carousel-wrap { width: 100%; max-width: 600px; position: relative; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #f8fafc; display: flex; flex-direction: column; }
@@ -620,7 +621,7 @@
         const info = currentNode.data.filter(d => !isMedia(d));
 
         const mediaSection = document.createElement('div');
-        mediaSection.className = 'media-section';
+        mediaSection.className = imgs.length > 0 ? 'media-section' : 'media-section no-media';
 
         const imgWrap = document.createElement('div');
         imgWrap.className = 'node-image-wrap';
@@ -637,11 +638,13 @@
           video.src = imgs[0].link || imgs[0].value;
           imgWrap.appendChild(video);
         } else {
-          imgWrap.style.cssText = 'max-width:600px; width:100%; min-height:200px; background:#edf2f7; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:1rem;';
+          imgWrap.style.cssText = 'max-width:600px; width:100%; padding:0.5rem; background:#edf2f7; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:0.85rem;';
           imgWrap.textContent = 'Немає зображення';
         }
         mediaSection.appendChild(imgWrap);
-        mediaSection.appendChild(renderCarousel(imgs));
+        if (imgs.length > 0) {
+          mediaSection.appendChild(renderCarousel(imgs));
+        }
         display.appendChild(mediaSection);
 
         if (info.length > 0) {
